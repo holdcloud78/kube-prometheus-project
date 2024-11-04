@@ -1,0 +1,13 @@
+# grafana-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-persistent-volume-claim
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi  # 필요한 스토리지 용량
+  storageClassName: kube-promethus-nfs-storage  # helm에서 설치한 NFS 스토리지 클래스

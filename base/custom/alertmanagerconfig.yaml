@@ -1,0 +1,82 @@
+# custom-alertmanagerconfig.yaml
+
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: kube-prometheus-alertmanager-configs
+  namespace: monitoring
+  labels:
+    app: kube-prometheus
+    app.kubernetes.io/instance: kube-prometheus
+    app.kubernetes.io/part-of: kube-prometheus
+    alertmanager: main
+    release: kube-prometheus
+spec:
+  route:
+    groupBy: ['namespace', 'alertname', 'pod', 'severity', 'instance', 'job']
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 12h   
+    receiver: 'null-receiver' # 기본 알림 수신기   
+    routes:      
+      - receiver: 'alerts-slack' # 경고 수신기
+        matchers:
+        - name: "severity"
+          value: "warning" # 경고 레벨 지정
+          matchType: "="
+        - name: "severity"
+          value: "critical" # 경고 이름 지정
+          matchType: "="
+      - receiver: 'null-receiver' # 알림을 무시하기 위해 null 수신기 사용
+        matchers:
+        - name: "alertname" # 경고 이름
+          value: "InfoInhibitor | watchdog" # "경고 이름이 value 포함됨"
+          matchType: "=~" # 정규식 사용
+          
+      #   - name: "namespace"
+      #     value: "monitoring" # 지정한 네임스페이스만
+      #     matchType: "="
+      #   groupBy: ['namespace', 'alertname', 'pod', 'severity', 'instance', 'job']
+      #   groupWait: 10s
+      #   groupInterval: 10s
+      #   repeatInterval: 10s
+      #   #continue: true
+
+      # # - receiver: 'alerts-email' # 경고 수신기
+      # #   matchers:
+      # #   - name: "severity"   # 매칭할 라벨 이름
+      # #     value: "critical"   # 매칭할 라벨 값
+      # #   groupBy: ['namespace', 'alertname', 'pod', 'severity', 'instance', 'job']
+      # #   groupWait: 10s
+      # #   groupInterval: 10s
+      # #   repeatInterval: 10s
+      # #   #continue: true
+      # #
+  
+  receivers:  
+  - name: 'alerts-slack' # Slack 알림 수신자 이름
+    slackConfigs:
+      - channel: '#alerts-kps' # 기본 경고 보낼 채널 이름
+        apiURL: 
+          name: alertmanager-slack # 참조하는 Secret의 이름
+          key: slack-api-url # Secret에서 참조하는 키 이름
+        sendResolved: true # 경고가 해결되면 슬랙에 알림
+        text: >-
+          *Alert:* {{ .CommonLabels.alertname }}
+          *Severity:* {{ .CommonLabels.severity }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+  
+  # - name: 'alerts-email' # 이메일로 경고 보내기
+  #   emailConfigs:
+  #     - to: 'hangoal@gloriaAviation.com'  # 수신자의 이메일 주소
+  #       from: 'smtp.gloriaAviation@gmail.com'  # 발송자의 이메일 주소
+  #       smarthost: 'smtp.gmail.com:587'  # Echange Online SMTP 서버
+  #       authUsername: 'smtp.gloriaAviation@gmail.com'  # SMTP 사용자 앱 계정         
+  #       authPassword:
+  #         name: alertmanager-gmail # secret 환경 변수로 참조
+  #         key: password # secret에서 참조하는 smtp 사용자 앱 패스워드
+  #       requireTLS: true  # TLS 사용
+  #       sendResolved: true  # 경고가 해결되면 이메일로 알림       
+  - name: 'null-receiver' # 경고를 무시하는 수신자        
+
